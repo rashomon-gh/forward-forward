@@ -24,6 +24,8 @@ from forward_forward import (
     train_epoch,
 )
 
+from loguru import logger
+
 # ============================================================================
 # Hyperparameters
 # ============================================================================
@@ -46,31 +48,31 @@ SEED = 42
 
 def main():
     """Main training function."""
-    print("=" * 60)
-    print("Forward-Forward Algorithm on MNIST")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Forward-Forward Algorithm on MNIST")
+    logger.info("=" * 60)
 
-    # Print device info
-    print(f"\nJAX devices: {jax.devices()}")
-    print(f"Using: {jax.devices()[0].platform.upper()}")
+    # logger.info device info
+    logger.info(f"\nJAX devices: {jax.devices()}")
+    logger.info(f"Using: {jax.devices()[0].platform.upper()}")
 
     # Initialize random key
     key = jax.random.PRNGKey(SEED)
 
     # Load MNIST data
-    print("\nLoading MNIST data...")
+    logger.info("\nLoading MNIST data...")
     train_images, train_labels = load_mnist(train=True)
     test_images, test_labels = load_mnist(train=False)
 
-    print(f"Training samples: {train_images.shape[0]}")
-    print(f"Test samples: {test_images.shape[0]}")
-    print(f"Image shape: {train_images.shape[1]}")
+    logger.info(f"Training samples: {train_images.shape[0]}")
+    logger.info(f"Test samples: {test_images.shape[0]}")
+    logger.info(f"Image shape: {train_images.shape[1]}")
 
     # Create network
-    print("\nCreating network...")
+    logger.info("\nCreating network...")
     network = FFNetwork(layer_sizes=LAYER_SIZES)
-    print(f"Layer sizes: {LAYER_SIZES}")
-    print(
+    logger.info(f"Layer sizes: {LAYER_SIZES}")
+    logger.info(
         f"Total parameters: {sum(p.size for p in jax.tree_util.tree_leaves(network.init(key, jnp.ones((1, 784)))))}"
     )
 
@@ -84,12 +86,12 @@ def main():
     )
 
     # Training loop
-    print("\nStarting training...")
-    print(f"Learning rate: {LEARNING_RATE}")
-    print(f"Batch size: {BATCH_SIZE}")
-    print(f"Threshold (θ): {THRESHOLD}")
-    print(f"Number of epochs: {NUM_EPOCHS}")
-    print("-" * 60)
+    logger.info("\nStarting training...")
+    logger.info(f"Learning rate: {LEARNING_RATE}")
+    logger.info(f"Batch size: {BATCH_SIZE}")
+    logger.info(f"Threshold (θ): {THRESHOLD}")
+    logger.info(f"Number of epochs: {NUM_EPOCHS}")
+    logger.info("-" * 60)
 
     best_accuracy = 0.0
     accuracy = 0.0
@@ -118,7 +120,7 @@ def main():
 
         # Evaluate on test set
         accuracy = evaluate_accuracy(
-            params=state.params,
+            params=state.params,  # type: ignore
             images=test_images,
             labels=test_labels,
             network=network,
@@ -129,8 +131,8 @@ def main():
         if accuracy > best_accuracy:
             best_accuracy = accuracy
 
-        # Print progress
-        print(
+        # logger.info progress
+        logger.info(
             f"Epoch {epoch + 1:3d}/{NUM_EPOCHS} | "
             f"Loss: {metrics['total_loss']:.4f} | "
             f"Accuracy: {accuracy:.2%} | "
@@ -139,15 +141,15 @@ def main():
         )
 
     # Final evaluation
-    print("-" * 60)
-    print("\nTraining complete!")
-    print(f"Final test accuracy: {accuracy:.2%}")
-    print(f"Best test accuracy: {best_accuracy:.2%}")
+    logger.info("-" * 60)
+    logger.info("\nTraining complete!")
+    logger.info(f"Final test accuracy: {accuracy:.2%}")
+    logger.info(f"Best test accuracy: {best_accuracy:.2%}")
 
-    # Print layer-wise losses
-    print("\nFinal layer losses:")
+    # logger.info layer-wise losses
+    logger.info("\nFinal layer losses:")
     for i in range(len(LAYER_SIZES)):
-        print(f"  Layer {i + 1}: {metrics[f'layer_{i}_loss']:.4f}")
+        logger.info(f"  Layer {i + 1}: {metrics[f'layer_{i}_loss']:.4f}")
 
 
 if __name__ == "__main__":

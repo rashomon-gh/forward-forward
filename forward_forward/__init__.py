@@ -39,7 +39,7 @@ Example usage:
             state, train_images, train_labels, subkey, network, threshold=2.0
         )
         accuracy = evaluate_accuracy(state.params, test_images, test_labels, network)
-        print(f"Epoch {epoch}: Accuracy = {accuracy:.2%}")
+        logger.info(f"Epoch {epoch}: Accuracy = {accuracy:.2%}")
     ```
 """
 
