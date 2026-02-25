@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fire>=0.7.1",
     "flax>=0.12.2",
     "ipython>=9.10.0",
     "jax[cuda13]>=0.9.0.1",

@@ -6,15 +6,19 @@ its performance. The FF algorithm uses two forward passes (positive
 and negative data) instead of traditional backpropagation.
 
 Usage:
-    python main.py
-
-Hyperparameters can be modified at the top of the script.
+    python main.py                                    # Use defaults
+    python main.py --learning_rate 0.01               # Custom learning rate
+    python main.py --num_epochs 100 --batch_size 64   # Multiple options
+    python main.py 512 512 512                        # Custom layer sizes
+    python main.py --help                             # Show all options
 """
 
 import time
 
 import jax
 import jax.numpy as jnp
+
+from fire import Fire
 
 from forward_forward import (
     FFNetwork,
@@ -26,28 +30,31 @@ from forward_forward import (
 
 from loguru import logger
 
-# ============================================================================
-# Hyperparameters
-# ============================================================================
 
-# Network architecture
-LAYER_SIZES = (2000, 2000, 2000, 2000)  # 4 layers with 2000 ReLUs each
+def main(
+    learning_rate: float = 0.001,
+    batch_size: int = 128,
+    num_epochs: int = 60,
+    threshold: float = 2.0,
+    eval_batch_size: int = 1000,
+    seed: int = 42,
+    *layer_sizes: int,
+) -> None:
+    """Main training function.
 
-# Training
-LEARNING_RATE = 0.001
-BATCH_SIZE = 128
-NUM_EPOCHS = 60
-THRESHOLD = 2.0  # θ in the FF paper
-
-# Evaluation
-EVAL_BATCH_SIZE = 1000
-
-# Random seed
-SEED = 42
-
-
-def main():
-    """Main training function."""
+    Args:
+        learning_rate: Learning rate for the optimizer.
+        batch_size: Batch size for training.
+        num_epochs: Number of training epochs.
+        threshold: Threshold θ for the FF paper's goodness function.
+        eval_batch_size: Batch size for evaluation.
+        seed: Random seed for reproducibility.
+        layer_sizes: Variable number of layer sizes for the network architecture.
+            Defaults to (2000, 2000, 2000, 2000) if not provided.
+    """
+    # Use default layer sizes if none provided
+    if not layer_sizes:
+        layer_sizes = (2000, 2000, 2000, 2000)
     logger.info("=" * 60)
     logger.info("Forward-Forward Algorithm on MNIST")
     logger.info("=" * 60)
@@ -57,7 +64,7 @@ def main():
     logger.info(f"Using: {jax.devices()[0].platform.upper()}")
 
     # Initialize random key
-    key = jax.random.PRNGKey(SEED)
+    key = jax.random.PRNGKey(seed)
 
     # Load MNIST data
     logger.info("\nLoading MNIST data...")
@@ -70,8 +77,8 @@ def main():
 
     # Create network
     logger.info("\nCreating network...")
-    network = FFNetwork(layer_sizes=LAYER_SIZES)
-    logger.info(f"Layer sizes: {LAYER_SIZES}")
+    network = FFNetwork(layer_sizes=layer_sizes)
+    logger.info(f"Layer sizes: {layer_sizes}")
     logger.info(
         f"Total parameters: {sum(p.size for p in jax.tree_util.tree_leaves(network.init(key, jnp.ones((1, 784)))))}"
     )
@@ -82,25 +89,25 @@ def main():
         network=network,
         key=init_key,
         input_shape=(784,),
-        learning_rate=LEARNING_RATE,
+        learning_rate=learning_rate,
     )
 
     # Training loop
     logger.info("\nStarting training...")
-    logger.info(f"Learning rate: {LEARNING_RATE}")
-    logger.info(f"Batch size: {BATCH_SIZE}")
-    logger.info(f"Threshold (θ): {THRESHOLD}")
-    logger.info(f"Number of epochs: {NUM_EPOCHS}")
+    logger.info(f"Learning rate: {learning_rate}")
+    logger.info(f"Batch size: {batch_size}")
+    logger.info(f"Threshold (θ): {threshold}")
+    logger.info(f"Number of epochs: {num_epochs}")
     logger.info("-" * 60)
 
     best_accuracy = 0.0
     accuracy = 0.0
     metrics = {
         "total_loss": 0.0,
-        **{f"layer_{i}_loss": 0.0 for i in range(len(LAYER_SIZES))},
+        **{f"layer_{i}_loss": 0.0 for i in range(len(layer_sizes))},
     }
 
-    for epoch in range(NUM_EPOCHS):
+    for epoch in range(num_epochs):
         epoch_start = time.time()
 
         # Train for one epoch
@@ -111,9 +118,9 @@ def main():
             labels=train_labels,
             key=train_key,
             network=network,
-            threshold=THRESHOLD,
-            batch_size=BATCH_SIZE,
-            num_layers=len(LAYER_SIZES),
+            threshold=threshold,
+            batch_size=batch_size,
+            num_layers=len(layer_sizes),
         )
 
         epoch_time = time.time() - epoch_start
@@ -124,7 +131,7 @@ def main():
             images=test_images,
             labels=test_labels,
             network=network,
-            batch_size=EVAL_BATCH_SIZE,
+            batch_size=eval_batch_size,
         )
 
         # Track best accuracy
@@ -133,7 +140,7 @@ def main():
 
         # logger.info progress
         logger.info(
-            f"Epoch {epoch + 1:3d}/{NUM_EPOCHS} | "
+            f"Epoch {epoch + 1:3d}/{num_epochs} | "
             f"Loss: {metrics['total_loss']:.4f} | "
             f"Accuracy: {accuracy:.2%} | "
             f"Best: {best_accuracy:.2%} | "
@@ -148,9 +155,9 @@ def main():
 
     # logger.info layer-wise losses
     logger.info("\nFinal layer losses:")
-    for i in range(len(LAYER_SIZES)):
+    for i in range(len(layer_sizes)):
         logger.info(f"  Layer {i + 1}: {metrics[f'layer_{i}_loss']:.4f}")
 
 
 if __name__ == "__main__":
-    main()
+    Fire(main)
