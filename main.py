@@ -329,11 +329,20 @@ def main(
         eval_start = time.time()
 
         # Evaluate on test set - get predictions for confusion matrix
-        pred_labels = predict_batch(
-            params=state.params,  # type: ignore
-            images=test_images,
-            network=network,
-        )
+        # Process in batches to avoid OOM
+        num_test_samples = test_images.shape[0]
+        num_test_batches = (num_test_samples + eval_batch_size - 1) // eval_batch_size
+        all_preds = []
+        for batch_idx in range(num_test_batches):
+            start_idx = batch_idx * eval_batch_size
+            end_idx = min(start_idx + eval_batch_size, num_test_samples)
+            batch_preds = predict_batch(
+                params=state.params,  # type: ignore
+                images=test_images[start_idx:end_idx],
+                network=network,
+            )
+            all_preds.append(batch_preds)
+        pred_labels = jnp.concatenate(all_preds)
 
         eval_time = time.time() - eval_start
         epoch_time = train_time + eval_time
