@@ -15,6 +15,7 @@ dependencies = [
     "optax>=0.2.7",
     "pandas>=3.0.1",
     "scikit-learn>=1.6.1",
+    "tensorboard>=2.20.0",
 ]
 
 [dependency-groups]
